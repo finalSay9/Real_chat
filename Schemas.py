@@ -117,7 +117,7 @@ class ConversationBase(BaseModel):
     max_participants: Optional[int] = None
 
 class ConversationCreate(ConversationBase):
-    participant_ids: List[uuid.UUID] = []
+    participant_ids: List[int] = []
 
 class ConversationUpdate(BaseModel):
     name: Optional[str] = Field(None, max_length=100)
@@ -128,8 +128,8 @@ class ConversationUpdate(BaseModel):
 class ConversationResponse(ConversationBase):
     model_config = ConfigDict(from_attributes=True)
     
-    id: uuid.UUID
-    created_by: uuid.UUID
+    id:int
+    created_by: int
     created_at: datetime
     updated_at: datetime
     last_message_at: datetime
@@ -140,10 +140,10 @@ class MessageBase(BaseModel):
     content: Optional[str] = Field(None, max_length=4000)
     message_type: MessageType = MessageType.text
     meta_data: Dict[str, Any] = {}
-    reply_to_message_id: Optional[uuid.UUID] = None
+    reply_to_message_id: Optional[int] = None
 
 class MessageCreate(MessageBase):
-    conversation_id: uuid.UUID
+    conversation_id: int
 
 class MessageUpdate(BaseModel):
     content: Optional[str] = Field(None, max_length=4000)
@@ -152,9 +152,9 @@ class MessageUpdate(BaseModel):
 class MessageResponse(MessageBase):
     model_config = ConfigDict(from_attributes=True)
     
-    id: uuid.UUID
-    conversation_id: uuid.UUID
-    sender_id: uuid.UUID
+    id: int
+    conversation_id: int
+    sender_id: int
     created_at: datetime
     updated_at: datetime
     edited_at: Optional[datetime]
@@ -168,8 +168,8 @@ class ParticipantBase(BaseModel):
     permissions: Dict[str, Any] = {}
 
 class ParticipantCreate(ParticipantBase):
-    user_id: uuid.UUID
-    conversation_id: uuid.UUID
+    user_id: int
+    conversation_id: int
 
 class ParticipantUpdate(BaseModel):
     role: Optional[ParticipantRole] = None
@@ -179,24 +179,24 @@ class ParticipantUpdate(BaseModel):
 class ParticipantResponse(ParticipantBase):
     model_config = ConfigDict(from_attributes=True)
     
-    user_id: uuid.UUID
-    conversation_id: uuid.UUID
+    user_id: int
+    conversation_id: int
     joined_at: datetime
     left_at: Optional[datetime]
-    last_read_message_id: Optional[uuid.UUID]
+    last_read_message_id: Optional[int]
     user: UserPublic
 
 # Reaction Schemas
 class ReactionCreate(BaseModel):
-    message_id: uuid.UUID
+    message_id: int
     reaction: str = Field(..., min_length=1, max_length=10)
 
 class ReactionResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     
-    id: uuid.UUID
-    message_id: uuid.UUID
-    user_id: uuid.UUID
+    id: int
+    message_id: int
+    user_id: int
     reaction: str
     created_at: datetime
     user: UserPublic
@@ -209,14 +209,14 @@ class FileAttachmentBase(BaseModel):
     thumbnail_url: Optional[str] = None
 
 class FileAttachmentCreate(FileAttachmentBase):
-    message_id: uuid.UUID
+    message_id: int
     file_url: str
 
 class FileAttachmentResponse(FileAttachmentBase):
     model_config = ConfigDict(from_attributes=True)
     
-    id: uuid.UUID
-    message_id: uuid.UUID
+    id: int
+    message_id: int
     file_url: str
     upload_status: UploadStatus
     created_at: datetime
@@ -239,7 +239,7 @@ class WSMessage(BaseModel):
     timestamp: datetime = Field(default_factory=datetime.utcnow)
 
 class MessageSendEvent(BaseModel):
-    conversation_id: uuid.UUID
+    conversation_id: int
     content: str
     message_type: MessageType = MessageType.text
     reply_to_message_id: Optional[int] = None
