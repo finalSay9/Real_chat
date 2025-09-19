@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, EmailStr, field_validator, ConfigDict,Field
 from enum import Enum
 import re
@@ -91,3 +91,218 @@ class UserResponse(UserBase):
     last_seen_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+
+class UserPublic(BaseModel):
+    
+    
+    id: int
+    username: str
+    display_name: Optional[str]
+    avatar_url: Optional[str]
+    is_active: bool
+    last_seen_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+
+# Conversation Schemas
+class ConversationBase(BaseModel):
+    name: Optional[str] = Field(None, max_length=100)
+    description: Optional[str] = Field(None, max_length=500)
+    type: ConversationType
+    is_private: bool = True
+    max_participants: Optional[int] = None
+
+class ConversationCreate(ConversationBase):
+    participant_ids: List[uuid.UUID] = []
+
+class ConversationUpdate(BaseModel):
+    name: Optional[str] = Field(None, max_length=100)
+    description: Optional[str] = Field(None, max_length=500)
+    is_private: Optional[bool] = None
+    max_participants: Optional[int] = None
+
+class ConversationResponse(ConversationBase):
+    model_config = ConfigDict(from_attributes=True)
+    
+    id: uuid.UUID
+    created_by: uuid.UUID
+    created_at: datetime
+    updated_at: datetime
+    last_message_at: datetime
+    settings: Dict[str, Any]
+
+# Message Schemas
+class MessageBase(BaseModel):
+    content: Optional[str] = Field(None, max_length=4000)
+    message_type: MessageType = MessageType.text
+    meta_data: Dict[str, Any] = {}
+    reply_to_message_id: Optional[uuid.UUID] = None
+
+class MessageCreate(MessageBase):
+    conversation_id: uuid.UUID
+
+class MessageUpdate(BaseModel):
+    content: Optional[str] = Field(None, max_length=4000)
+    meta_data: Optional[Dict[str, Any]] = None
+
+class MessageResponse(MessageBase):
+    model_config = ConfigDict(from_attributes=True)
+    
+    id: uuid.UUID
+    conversation_id: uuid.UUID
+    sender_id: uuid.UUID
+    created_at: datetime
+    updated_at: datetime
+    edited_at: Optional[datetime]
+    is_deleted: bool
+    sender: UserPublic
+
+# Participant Schemas
+class ParticipantBase(BaseModel):
+    role: ParticipantRole = ParticipantRole.member
+    is_muted: bool = False
+    permissions: Dict[str, Any] = {}
+
+class ParticipantCreate(ParticipantBase):
+    user_id: uuid.UUID
+    conversation_id: uuid.UUID
+
+class ParticipantUpdate(BaseModel):
+    role: Optional[ParticipantRole] = None
+    is_muted: Optional[bool] = None
+    permissions: Optional[Dict[str, Any]] = None
+
+class ParticipantResponse(ParticipantBase):
+    model_config = ConfigDict(from_attributes=True)
+    
+    user_id: uuid.UUID
+    conversation_id: uuid.UUID
+    joined_at: datetime
+    left_at: Optional[datetime]
+    last_read_message_id: Optional[uuid.UUID]
+    user: UserPublic
+
+# Reaction Schemas
+class ReactionCreate(BaseModel):
+    message_id: uuid.UUID
+    reaction: str = Field(..., min_length=1, max_length=10)
+
+class ReactionResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    
+    id: uuid.UUID
+    message_id: uuid.UUID
+    user_id: uuid.UUID
+    reaction: str
+    created_at: datetime
+    user: UserPublic
+
+# File Attachment Schemas
+class FileAttachmentBase(BaseModel):
+    filename: str
+    file_type: str
+    file_size: int
+    thumbnail_url: Optional[str] = None
+
+class FileAttachmentCreate(FileAttachmentBase):
+    message_id: uuid.UUID
+    file_url: str
+
+class FileAttachmentResponse(FileAttachmentBase):
+    model_config = ConfigDict(from_attributes=True)
+    
+    id: uuid.UUID
+    message_id: uuid.UUID
+    file_url: str
+    upload_status: UploadStatus
+    created_at: datetime
+
+# WebSocket Event Schemas
+class WSEventType(str, enum.Enum):
+    message_send = "message_send"
+    message_received = "message_received"
+    typing_start = "typing_start"
+    typing_stop = "typing_stop"
+    user_joined = "user_joined"
+    user_left = "user_left"
+    delivery_status = "delivery_status"
+    reaction_added = "reaction_added"
+    reaction_removed = "reaction_removed"
+
+class WSMessage(BaseModel):
+    event_type: WSEventType
+    data: Dict[str, Any]
+    timestamp: datetime = Field(default_factory=datetime.utcnow)
+
+class MessageSendEvent(BaseModel):
+    conversation_id: uuid.UUID
+    content: str
+    message_type: MessageType = MessageType.text
+    reply_to_message_id: Optional[int] = None
+
+class TypingEvent(BaseModel):
+    conversation_id: int
+
+class UserPresenceEvent(BaseModel):
+    conversation_id: int
+    user_id: int
+
+# Authentication Schemas
+class Token(BaseModel):
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"
+
+class TokenData(BaseModel):
+    user_id: Optional[int] = None
+
+class LoginRequest(BaseModel):
+    username_or_email: str
+    password: str
+
+# Pagination Schemas
+class PaginationParams(BaseModel):
+    page: int = Field(1, ge=1)
+    size: int = Field(20, ge=1, le=100)
+
+class PaginatedResponse(BaseModel):
+    items: List[Any]
+    total: int
+    page: int
+    size: int
+    pages: int
+
+# User Preferences Schemas
+class NotificationSettings(BaseModel):
+    message_notifications: bool = True
+    email_notifications: bool = False
+    push_notifications: bool = True
+    sound_enabled: bool = True
+
+class PrivacySettings(BaseModel):
+    show_online_status: bool = True
+    allow_direct_messages: bool = True
+    show_read_receipts: bool = True
+
+class UserPreferencesUpdate(BaseModel):
+    notification_settings: Optional[NotificationSettings] = None
+    privacy_settings: Optional[PrivacySettings] = None
+    theme_preference: Optional[str] = "light"
+    message_preview: Optional[bool] = True
+    online_status_visible: Optional[bool] = True
+    read_receipts_enabled: Optional[bool] = True
+
+class UserPreferencesResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    
+    user_id: int
+    notification_settings: Dict[str, Any]
+    privacy_settings: Dict[str, Any]
+    theme_preference: str
+    message_preview: bool
+    online_status_visible: bool
+    read_receipts_enabled: bool
