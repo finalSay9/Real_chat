@@ -13,7 +13,7 @@ router = APIRouter(
 )
 
 @router.post("/", response_model=MessageCreate)
-async def create_message(message: MessageCreate, sender_id: uuid.UUID, db: Session = Depends(get_db)):
+async def create_message(message: MessageCreate, sender_id: int, db: Session = Depends(get_db)):
     """Create a new message"""
     # Verify sender is participant
     participant = db.query(Participant).filter(
@@ -49,7 +49,7 @@ async def create_message(message: MessageCreate, sender_id: uuid.UUID, db: Sessi
     return db_message
 
 @router.get("/conversation/{conversation_id}", response_model=List[MessageCreate])
-async def get_messages(conversation_id: uuid.UUID, user_id: uuid.UUID, skip: int = 0, limit: int = 50, db: Session = Depends(get_db)):
+async def get_messages(conversation_id: int, user_id: int, skip: int = 0, limit: int = 50, db: Session = Depends(get_db)):
     """Get messages from a conversation"""
     # Verify user is participant
     participant = db.query(Participant).filter(
@@ -71,7 +71,7 @@ async def get_messages(conversation_id: uuid.UUID, user_id: uuid.UUID, skip: int
     return messages
 
 @router.put("/{message_id}", response_model=MessageCreate)
-async def update_message(message_id: uuid.UUID, message_update: MessageUpdate, user_id: uuid.UUID, db: Session = Depends(get_db)):
+async def update_message(message_id: int, message_update: MessageUpdate, user_id: int, db: Session = Depends(get_db)):
     """Update a message"""
     message = db.query(Message).filter(
         Message.id == message_id,
@@ -96,7 +96,7 @@ async def update_message(message_id: uuid.UUID, message_update: MessageUpdate, u
     return message
 
 @router.delete("/{message_id}", response_model=MessageCreate)
-async def delete_message(message_id: uuid.UUID, user_id: uuid.UUID, db: Session = Depends(get_db)):
+async def delete_message(message_id: int, user_id:int, db: Session = Depends(get_db)):
     """Soft delete a message"""
     message = db.query(Message).filter(
         Message.id == message_id,
@@ -118,7 +118,7 @@ async def delete_message(message_id: uuid.UUID, user_id: uuid.UUID, db: Session 
     return message
 
 @router.post("/{conversation_id}/read/{message_id}")
-async def mark_as_read(conversation_id: uuid.UUID, message_id: uuid.UUID, user_id: uuid.UUID, db: Session = Depends(get_db)):
+async def mark_as_read(conversation_id: int, message_id: int, user_id: int, db: Session = Depends(get_db)):
     """Mark message as read by user"""
     participant = db.query(Participant).filter(
         Participant.conversation_id == conversation_id,
