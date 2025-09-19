@@ -13,7 +13,7 @@ router = APIRouter(
 )
 
 @router.post("/", response_model=MessageCreate)
-async def create_message(message: MessageCreate, sender_id: int, db: Session = Depends(get_db)):
+def create_message(message: MessageCreate, sender_id: int, db: Session = Depends(get_db)):
     """Create a new message"""
     # Verify sender is participant
     participant = db.query(Participant).filter(
@@ -33,7 +33,7 @@ async def create_message(message: MessageCreate, sender_id: int, db: Session = D
         sender_id=sender_id,
         content=message.content,
         message_type=message.message_type,
-        metadata=message.metadata,
+        metadata=message.meta_data,
         reply_to_message_id=message.reply_to_message_id
     )
     

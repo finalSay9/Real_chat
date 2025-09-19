@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-import Users,Auth, Messages
+import Users,Auth, Messages, Conversation
 
 
 
@@ -19,8 +19,9 @@ app.add_middleware(
 
 
 
+
 app.include_router(Auth.router)
 app.include_router(Users.router)
-#app.include_router(Conversation.router)
+app.include_router(Conversation.router)
 app.include_router(Messages.router)
 #app.include_router(dangersocket.router)

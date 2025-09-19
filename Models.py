@@ -97,7 +97,7 @@ class Message(Base):
     message_type: Mapped["MessageType"] = mapped_column(Enum(MessageType), default=MessageType.text)
     meta_data: Mapped[dict] = mapped_column(JSON, default=dict)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    edited_at: Mapped[datetime] = mapped_column(DateTime)
+    edited_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
     is_deleted: Mapped[bool] = mapped_column(Boolean, default=False)
 
     # self-referencing field (reply-to)
@@ -120,8 +120,8 @@ class Participant(Base):
     user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), primary_key=True)
     role: Mapped["ParticipantRole"] = mapped_column(Enum(ParticipantRole), default=ParticipantRole.member)
     joined_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-    left_at: Mapped[datetime] = mapped_column(DateTime)
-    last_read_message_id: Mapped[int] = mapped_column(Integer, ForeignKey("messages.id"))
+    left_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    last_read_message_id: Mapped[int] = mapped_column(Integer, ForeignKey("messages.id"), nullable=True)
     is_muted: Mapped[bool] = mapped_column(Boolean, default=False)
     permissions: Mapped[dict] = mapped_column(JSON, default=dict)
     
