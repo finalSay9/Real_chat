@@ -8,6 +8,7 @@ from Database import Base
 from datetime import datetime
 from fastapi import WebSocket, Depends
 from sqlalchemy.orm import Session
+from sqlalchemy import Enum
 
 
 
@@ -47,9 +48,9 @@ class User(Base):
     bio: Mapped[str] = mapped_column(Text)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
-    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.utcnow)
-    updated_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    last_seen_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    last_seen_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
     timezone: Mapped[str] = mapped_column(String(50), default="UTC")
     language: Mapped[str] = mapped_column(String(10), default="en")
     
@@ -70,12 +71,12 @@ class Conversation(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String(100))
     description: Mapped[str] = mapped_column(Text)
-    type: Mapped["ConversationType"] = mapped_column(enum.Enum(ConversationType), nullable=False)
+    type: Mapped["ConversationType"] = mapped_column(Enum(ConversationType), nullable=False)
     is_private: Mapped[bool] = mapped_column(Boolean, default=True)
     created_by: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
-    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.utcnow)
-    updated_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    last_message_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    last_message_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
     max_participants: Mapped[int] = mapped_column(Integer)
     settings: Mapped[dict] = mapped_column(JSON, default=dict)
     
@@ -89,14 +90,14 @@ class Message(Base):
     __tablename__ = "messages"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
     conversation_id: Mapped[int] = mapped_column(Integer, ForeignKey("conversations.id"), nullable=False, index=True)
     sender_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     content: Mapped[str] = mapped_column(Text)
-    message_type: Mapped["MessageType"] = mapped_column(enum.Enum(MessageType), default=MessageType.text)
+    message_type: Mapped["MessageType"] = mapped_column(Enum(MessageType), default=MessageType.text)
     meta_data: Mapped[dict] = mapped_column(JSON, default=dict)
-    updated_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    edited_at: Mapped[datetime.datetime] = mapped_column(DateTime)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    edited_at: Mapped[datetime] = mapped_column(DateTime)
     is_deleted: Mapped[bool] = mapped_column(Boolean, default=False)
 
     # self-referencing field (reply-to)
@@ -117,9 +118,9 @@ class Participant(Base):
     
     conversation_id: Mapped[int] = mapped_column(Integer, ForeignKey("conversations.id"), primary_key=True)
     user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), primary_key=True)
-    role: Mapped["ParticipantRole"] = mapped_column(enum.Enum(ParticipantRole), default=ParticipantRole.member)
-    joined_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.utcnow)
-    left_at: Mapped[datetime.datetime] = mapped_column(DateTime)
+    role: Mapped["ParticipantRole"] = mapped_column(Enum(ParticipantRole), default=ParticipantRole.member)
+    joined_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    left_at: Mapped[datetime] = mapped_column(DateTime)
     last_read_message_id: Mapped[int] = mapped_column(Integer, ForeignKey("messages.id"))
     is_muted: Mapped[bool] = mapped_column(Boolean, default=False)
     permissions: Mapped[dict] = mapped_column(JSON, default=dict)
@@ -137,7 +138,7 @@ class MessageReaction(Base):
     message_id: Mapped[int] = mapped_column(Integer, ForeignKey("messages.id"), nullable=False, index=True)
     user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
     reaction: Mapped[str] = mapped_column(String(10), nullable=False)  # emoji or reaction type
-    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     
     # Relationships
     message: Mapped["Message"] = relationship("Message", back_populates="reactions")
@@ -159,8 +160,8 @@ class FileAttachment(Base):
     file_type: Mapped[str] = mapped_column(String(100), nullable=False)
     file_size: Mapped[int] = mapped_column(BigInteger, nullable=False)
     thumbnail_url: Mapped[str] = mapped_column(String(500))
-    upload_status: Mapped["UploadStatus"] = mapped_column(enum.Enum(UploadStatus), default=UploadStatus.uploading, index=True)
-    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    upload_status: Mapped["UploadStatus"] = mapped_column(Enum(UploadStatus), default=UploadStatus.uploading, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     
     # Relationships
     message: Mapped["Message"] = relationship("Message", back_populates="attachments")
@@ -175,8 +176,8 @@ class UserSession(Base):
     connection_id: Mapped[str] = mapped_column(String(255))
     device_info: Mapped[dict] = mapped_column(JSON, default=dict)
     ip_address: Mapped[str] = mapped_column(String(45))
-    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.utcnow)
-    last_activity: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    last_activity: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
     
     # Relationships
@@ -188,7 +189,7 @@ class BlockedUser(Base):
     
     blocker_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), primary_key=True)
     blocked_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), primary_key=True, index=True)
-    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     reason: Mapped[str] = mapped_column(String(255))
     
     # Relationships
