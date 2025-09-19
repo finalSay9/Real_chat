@@ -4,6 +4,7 @@ from pydantic import BaseModel, EmailStr, field_validator, ConfigDict,Field
 from enum import Enum
 import re
 from pydantic_core.core_schema import ValidationInfo
+import enum
 
 
 
@@ -29,3 +30,23 @@ class UploadStatus(str, enum.Enum):
     uploading = "uploading"
     completed = "completed"
     failed = "failed"
+
+
+class UserBase(BaseModel):
+    username: str 
+    email: EmailStr
+    display_name: Optional[str] = Field(None, max_length=100)
+    bio: Optional[str] = Field(None, max_length=500)
+    avatar_url: Optional[str] = None
+    timezone: str = "UTC"
+    language: str = "en"
+
+    @field_validator('username')
+    def validate_username(cls, value: str) -> str:
+        if not re.match(r"^[a-zA-Z0-9_]{3,20}$", value):
+            raise ValueError("Username must be 3-20 characters long and contain only letters, numbers, or underscores")
+        return value
+    
+    @field_validator('email')
+    def normalize_email(cls, value: EmailStr) -> str:
+        return value.lower()
