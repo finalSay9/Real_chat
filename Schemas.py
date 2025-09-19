@@ -50,3 +50,44 @@ class UserBase(BaseModel):
     @field_validator('email')
     def normalize_email(cls, value: EmailStr) -> str:
         return value.lower()
+
+
+
+class UserCreate(UserBase):
+   
+    password: str
+    
+
+
+    @field_validator('password')
+    def validate_password(cls, value: str) -> str:
+        if len(value) < 8:
+            raise ValueError('password must be 8 characters long')
+        if not re.search(r"[A-Z]", value):
+            raise ValueError("Password must contain at least one uppercase letter")
+        if not re.search(r"[a-z]", value):
+            raise ValueError("Password must contain at least one lowercase letter")
+        if not re.search(r"[0-9]", value):
+            raise ValueError("Password must contain at least one digit")
+        if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", value):
+            raise ValueError("Password must contain at least one special character")
+        return value
+    
+
+class UserUpdate(BaseModel):
+    display_name: Optional[str] = Field(None, max_length=100)
+    bio: Optional[str] = Field(None, max_length=500)
+    avatar_url: Optional[str] = None
+    timezone: Optional[str] = None
+    language: Optional[str] = None
+
+
+class UserResponse(UserBase):
+    
+    id: int
+    is_active: bool
+    is_verified: bool
+    created_at: datetime
+    last_seen_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
