@@ -1,0 +1,34 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.db
+*.sqlite3
+
+# Virtual environment
+venv/
+env/
+.venv/
+evan/
+
+# IDE / Editor
+.vscode/
+.idea/
+
+# Environment variables
+*.env
+
+# Alembic migrations cache
+alembic/__pycache__/
+alembic/versions/__pycache__/
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+#git config --global user.name "Evan Chimwaza"
+#git config --global user.email "evanchimwaza@gmail.com"
