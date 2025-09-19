@@ -1,4 +1,4 @@
-from sqlalchemy import Column, ForeignKey, Integer, String, Boolean, DateTime, Enum as SqlEnum, Table
+from sqlalchemy import Column, ForeignKey, Integer, String, Boolean, DateTime, Enum as SqlEnum, Table, Text
 from sqlalchemy.sql import func
 from sqlalchemy.orm import declarative_base, Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import CITEXT  # Optional: for PostgreSQL
@@ -39,20 +39,20 @@ class UploadStatus(str, enum.Enum):
 class User(Base):
     __tablename__ = "users"
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    username = Column(String(30), unique=True, nullable=False, index=True)
-    email = Column(String(255), unique=True, nullable=False, index=True)
-    password_hash = Column(String(255), nullable=False)
-    display_name = Column(String(100))
-    avatar_url = Column(String(500))
-    bio = Column(Text)
-    is_active = Column(Boolean, default=True)
-    is_verified = Column(Boolean, default=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    last_seen_at = Column(DateTime, default=datetime.utcnow, index=True)
-    timezone = Column(String(50), default="UTC")
-    language = Column(String(10), default="en")
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    username: Mapped[str] = mapped_column(String(30), unique=True, nullable=False, index=True)
+    email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
+    password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
+    display_name: Mapped[str] = mapped_column(String(100))
+    avatar_url: Mapped[str] = mapped_column(String(500))
+    bio: Mapped[str] = mapped_column(Text)
+    is_active: Mapped[str] = mapped_column(Boolean, default=True)
+    is_verified: Mapped[str] = mapped_column(Boolean, default=False)
+    created_at: Mapped[str] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[str] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    last_seen_at: Mapped[str] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+    timezone: Mapped[str] = mapped_column(String(50), default="UTC")
+    language: Mapped[str] = mapped_column(String(10), default="en")
     
     # Relationships
     messages = relationship("Message", back_populates="sender")
