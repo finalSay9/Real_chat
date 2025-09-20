@@ -101,7 +101,7 @@ class Message(Base):
     is_deleted: Mapped[bool] = mapped_column(Boolean, default=False)
 
     # self-referencing field (reply-to)
-    reply_to_message_id: Mapped[int] = mapped_column(Integer, ForeignKey("messages.id"))
+    reply_to_message_id: Mapped[int] = mapped_column(Integer, ForeignKey("messages.id"), nullable=True)
 
     # Relationships
     conversation: Mapped["Conversation"] = relationship("Conversation", back_populates="messages")
