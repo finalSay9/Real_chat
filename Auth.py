@@ -1,14 +1,54 @@
 # routers/auth.py - Authentication Routes
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordRequestForm
+from fastapi.security import HTTPAuthorizationCredentials, OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from jose import JWTError, jwt
 from sqlalchemy.orm import Session
 from Database import get_db
-from Schemas import UserCreate, UserResponse, Token, LoginRequest
+from Schemas import UserCreate, UserResponse, Token, LoginRequest, TokenData
+from Models import User
 import Users
-from Security import verify_password, create_access_token, create_refresh_token, verify_token
-from datetime import timedelta
+from Security import(
+    verify_password, 
+    create_access_token,
+     create_refresh_token, 
+     verify_token, SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES)
+from datetime import datetime, timedelta
+from fastapi.security import HTTPBearer
+
+
+
+
+security = HTTPBearer()
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl='/auth/token')
+
+
+
+
+
+async def get_current_user(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    db: Session = Depends(get_db)
+):
+    """Get current authenticated user"""
+     # Import here to avoid circular imports
+    
+    user_id = verify_token(credentials.credentials)
+    user = db.query(User).filter(User.id == user_id, User.is_active == True).first()
+    
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found"
+        )
+    
+    # Update last seen
+    user.last_seen_at = datetime.utcnow()
+    db.commit()
+    
+    return user
+
 
 @router.post("/register", response_model=UserResponse)
 async def register(user: UserCreate, db: Session = Depends(get_db)):
@@ -47,7 +87,7 @@ def login(login_data: LoginRequest, db: Session = Depends(get_db)):
     }
 
 @router.post("/refresh", response_model=Token)
-async def refresh_token(refresh_token: str, db: Session = Depends(get_db)):
+def refresh_token(refresh_token: str, db: Session = Depends(get_db)):
     """Refresh access token"""
     user_id = verify_token(refresh_token, "refresh")
     user = Users.get_user(db, user_id)

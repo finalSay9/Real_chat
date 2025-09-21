@@ -252,6 +252,10 @@ class UserPresenceEvent(BaseModel):
     user_id: int
 
 # Authentication Schemas
+class LoginRequest(BaseModel):
+    username_or_email: str = Field(..., min_length=1, description="Username or email address")
+    password: str = Field(..., min_length=1, description="User password")
+
 class Token(BaseModel):
     access_token: str
     refresh_token: str
@@ -259,10 +263,11 @@ class Token(BaseModel):
 
 class TokenData(BaseModel):
     user_id: Optional[int] = None
+    email: Optional[str] = None
+    scopes: List[str] = []
 
-class LoginRequest(BaseModel):
-    username_or_email: str
-    password: str
+class RefreshTokenRequest(BaseModel):
+    refresh_token: str
 
 # Pagination Schemas
 class PaginationParams(BaseModel):

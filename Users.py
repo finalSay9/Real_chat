@@ -8,6 +8,7 @@ from typing import Optional, List
 import uuid
 from datetime import datetime
 from Database import get_db
+import Auth
 
 router = APIRouter(
     prefix="/users",
@@ -58,6 +59,10 @@ async def create_user(user: Schemas.UserCreate, db: Session = Depends(get_db)):
     
     return db_user
 
+@router.get("/me", response_model=Schemas.UserResponse)
+async def get_current_user_data(current_user: Models.User = Depends(Auth.get_current_user)):
+    return current_user
+
 @router.get("/{user_id}", response_model=Optional[Schemas.UserResponse])
 async def get_user(user_id: int, db: Session = Depends(get_db)):
     """Get user by ID"""
@@ -89,7 +94,10 @@ def get_user_by_username(username: str, db: Session = Depends(get_db)):
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found"
         )
+
     return user
+
+    
 
 @router.put("/{user_id}", response_model=Schemas.UserResponse)
 async def update_user(user_id: uuid.UUID, user_update: Schemas.UserUpdate, db: Session = Depends(get_db)):
@@ -137,3 +145,7 @@ async def deactivate_user(user_id: uuid.UUID, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(user)
     return user
+
+
+
+
