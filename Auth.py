@@ -51,7 +51,7 @@ async def get_current_user(
 
 
 @router.post("/register", response_model=UserResponse)
-async def register(user: UserCreate, db: Session = Depends(get_db)):
+def register(user: UserCreate, db: Session = Depends(get_db)):
     """Register a new user"""
     return Users.create_user(db, user)
 

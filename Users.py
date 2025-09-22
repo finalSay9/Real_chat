@@ -15,8 +15,8 @@ router = APIRouter(
     tags=["users"]
 )
 
-@router.post("/", response_model=Schemas.UserResponse)
-async def create_user(user: Schemas.UserCreate, db: Session = Depends(get_db)):
+@router.post("/register", response_model=Schemas.UserResponse)
+def create_user(user: Schemas.UserCreate, db: Session = Depends(get_db)):
     """Create a new user"""
     # Check if user already exists
     existing_user = db.query(Models.User).filter(

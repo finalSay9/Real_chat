@@ -1,152 +1,142 @@
+# routers/conversations.py - Fixed Conversations Router
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from sqlalchemy import or_
-from Models import Conversation, Participant, Message, ParticipantRole, User
-from Schemas import ConversationCreate, ConversationUpdate, ParticipantCreate
-from typing import List, Optional
-import uuid
-from datetime import datetime
 from Database import get_db
+from Schemas import ConversationCreate, ConversationResponse, ConversationUpdate, ParticipantResponse
+from Models import User, Conversation, Participant
+import Conversations as ConversationCRUD  # Your CRUD operations
+from Security import get_current_user  # Updated import path
+from typing import List
+import uuid
 
-router = APIRouter(
-    prefix="/conversations",
-    tags=["conversations"]
-)
+# IMPORTANT: Don't add trailing slash in prefix!
+router = APIRouter(prefix="/conversations", tags=["Conversations"])
 
-@router.post("/", response_model=ConversationCreate)
-def create_conversation(conversation: ConversationCreate, creator_id: int, db: Session = Depends(get_db)):
+@router.get("/", response_model=List[ConversationResponse])
+async def get_user_conversations(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get all conversations for current user"""
+    try:
+        conversations = ConversationCRUD.get_user_conversations(db, str(current_user.id))
+        return conversations
+    except Exception as e:
+        print(f"Error getting conversations: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to retrieve conversations"
+        )
+
+@router.post("/", response_model=ConversationResponse)
+async def create_conversation(
+    conversation: ConversationCreate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     """Create a new conversation"""
-    db_conversation = Conversation(
-        name=conversation.name,
-        description=conversation.description,
-        type=conversation.type,
-        is_private=conversation.is_private,
-        created_by=creator_id,
-        max_participants=conversation.max_participants
-    )
-    
-    db.add(db_conversation)
-    db.flush()  # Get the ID without committing
-    
-    # Add creator as owner
-    creator_participant = Participant(
-        conversation_id=db_conversation.id,
-        user_id=creator_id,
-        role=ParticipantRole.owner
-    )
-    db.add(creator_participant)
-    
-    # Add other participants
-    for user_id in conversation.participant_ids:
-        if user_id != creator_id:  # Don't add creator twice
-            participant = Participant(
-                conversation_id=db_conversation.id,
-                user_id=user_id,
-                role=ParticipantRole.member
-            )
-            db.add(participant)
-    
-    db.commit()
-    db.refresh(db_conversation)
-    return db_conversation
-
-@router.get("/{conversation_id}", response_model=Optional[ConversationCreate])
-async def get_conversation(conversation_id: int, user_id: int, db: Session = Depends(get_db)):
-    """Get conversation if user is a participant"""
-    conversation = db.query(Conversation).join(Participant).filter(
-        Conversation.id == conversation_id,
-        Participant.user_id == user_id,
-        Participant.left_at.is_(None)
-    ).first()
-    if not conversation:
+    try:
+        return ConversationCRUD.create_conversation(db, conversation, str(current_user.id))
+    except Exception as e:
+        print(f"Error creating conversation: {e}")
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Conversation not found or user is not a participant"
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
         )
-    return conversation
 
-@router.get("/user/{user_id}", response_model=List[ConversationCreate])
-async def get_user_conversations(user_id: int, db: Session = Depends(get_db)):
-    """Get all conversations for a user"""
-    conversations = db.query(Conversation).join(Participant).filter(
-        Participant.user_id == user_id,
-        Participant.left_at.is_(None)
-    ).order_by(Conversation.last_message_at.desc()).all()
-    return conversations
-
-@router.post("/{conversation_id}/participants", response_model=ParticipantCreate)
-async def add_participant(conversation_id: int, user_id: int, added_by: int, db: Session = Depends(get_db)):
-    """Add a participant to a conversation"""
-    # Check if user adding has permission
-    adder = db.query(Participant).filter(
-        Participant.conversation_id == conversation_id,
-        Participant.user_id == added_by,
-        Participant.role.in_([ParticipantRole.owner, ParticipantRole.admin])
-    ).first()
-    
-    if not adder:
+@router.get("/{conversation_id}", response_model=ConversationResponse)
+async def get_conversation(
+    conversation_id: str,  # Changed from UUID to string
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get a specific conversation"""
+    try:
+        conversation = ConversationCRUD.get_conversation(db, conversation_id, str(current_user.id))
+        if not conversation:
+            raise HTTPException(status_code=404, detail="Conversation not found")
+        return conversation
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error getting conversation: {e}")
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Permission denied"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to retrieve conversation"
         )
-    
-    # Check if user is already a participant
-    existing = db.query(Participant).filter(
-        Participant.conversation_id == conversation_id,
-        Participant.user_id == user_id
-    ).first()
-    
-    if existing:
-        if existing.left_at:
-            # Rejoin conversation
-            existing.left_at = None
-            existing.joined_at = datetime.utcnow()
-            db.commit()
-            return existing
-        else:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="User is already a participant"
-            )
-    
-    participant = Participant(
-        conversation_id=conversation_id,
-        user_id=user_id,
-        role=ParticipantRole.member
-    )
-    db.add(participant)
-    db.commit()
-    db.refresh(participant)
-    return participant
+
+@router.get("/{conversation_id}/participants", response_model=List[ParticipantResponse])
+async def get_conversation_participants(
+    conversation_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get participants of a conversation"""
+    try:
+        # Verify user has access to conversation
+        conversation = ConversationCRUD.get_conversation(db, conversation_id, str(current_user.id))
+        if not conversation:
+            raise HTTPException(status_code=404, detail="Conversation not found")
+        
+        participants = ConversationCRUD.get_conversation_participants(db, conversation_id)
+        return participants
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error getting participants: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to retrieve participants"
+        )
+
+@router.post("/{conversation_id}/participants/{user_id}")
+async def add_participant(
+    conversation_id: str,
+    user_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Add participant to conversation"""
+    try:
+        return ConversationCRUD.add_participant(db, conversation_id, user_id, str(current_user.id))
+    except Exception as e:
+        print(f"Error adding participant: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
 
 @router.delete("/{conversation_id}/participants/{user_id}")
-async def remove_participant(conversation_id: int, user_id: int, removed_by: int, db: Session = Depends(get_db)):
-    """Remove a participant from a conversation"""
-    # Check permissions
-    remover = db.query(Participant).filter(
-        Participant.conversation_id == conversation_id,
-        Participant.user_id == removed_by,
-        Participant.role.in_([ParticipantRole.owner, ParticipantRole.admin])
-    ).first()
-    
-    if not remover and removed_by != user_id:  # Can remove yourself
+async def remove_participant(
+    conversation_id: str,
+    user_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Remove participant from conversation"""
+    try:
+        ConversationCRUD.remove_participant(db, conversation_id, user_id, str(current_user.id))
+        return {"message": "Participant removed successfully"}
+    except Exception as e:
+        print(f"Error removing participant: {e}")
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Permission denied"
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
         )
-    
-    participant = db.query(Participant).filter(
-        Participant.conversation_id == conversation_id,
-        Participant.user_id == user_id,
-        Participant.left_at.is_(None)
-    ).first()
-    
-    if not participant:
+
+@router.delete("/{conversation_id}")
+async def delete_conversation(
+    conversation_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Delete a conversation (owner only)"""
+    try:
+        ConversationCRUD.delete_conversation(db, conversation_id, str(current_user.id))
+        return {"message": "Conversation deleted successfully"}
+    except Exception as e:
+        print(f"Error deleting conversation: {e}")
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Participant not found"
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
         )
-    
-    participant.left_at = datetime.utcnow()
-    db.commit()
-    return {"detail": "Participant removed successfully"}
